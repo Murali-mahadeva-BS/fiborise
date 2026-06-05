@@ -1,0 +1,15 @@
+# Conservative project defaults for Codex in this repository.
+# Project .codex config is loaded only after the project is trusted.
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "cached"
+model_reasoning_effort = "medium"
+project_doc_max_bytes = 65536
+
+[sandbox_workspace_write]
+network_access = false
+
+[features]
+undo = true
+multi_agent = true
