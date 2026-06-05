@@ -27,15 +27,15 @@ Why this stack:
 ## Suggested Project Structure
 
 ```text
-app/
-  _layout.tsx
-  index.tsx
-  onboarding.tsx
-  settings.tsx
-  habits/
-    new.tsx
-    [id].tsx
 src/
+  app/
+    _layout.tsx
+    index.tsx
+    onboarding.tsx
+    settings.tsx
+    habits/
+      new.tsx
+      [id].tsx
   components/
     ui/
   features/
@@ -70,6 +70,10 @@ type Habit = {
   reminderEnabled: boolean;
   reminderTime?: string; // HH:mm
   stayModeEnabled: boolean;
+  stayModeLevelSequencePosition?: number;
+  stayModeLevel?: number;
+  stayModeTargetAmount?: number;
+  stayModeDoneDaysInLevel?: number;
   archivedAt?: string;
   deletedAt?: string;
   createdAt: string;
