@@ -2,7 +2,9 @@ import { create } from 'zustand';
 import { type SQLiteDatabase } from 'expo-sqlite';
 
 import {
+  archiveHabit as archiveHabitRecord,
   createHabit as createHabitRecord,
+  deleteArchivedHabit as deleteArchivedHabitRecord,
   listActiveHabits,
   listArchivedHabits,
 } from '@/features/habits/repository';
@@ -34,6 +36,8 @@ type AppState = {
   createHabit: (db: SQLiteDatabase, input: CreateHabitInput) => Promise<Habit>;
   markHabitDone: (db: SQLiteDatabase, habitId: string, localDate?: string) => Promise<void>;
   markHabitNotDone: (db: SQLiteDatabase, habitId: string, localDate?: string) => Promise<void>;
+  archiveHabit: (db: SQLiteDatabase, habitId: string) => Promise<void>;
+  deleteArchivedHabit: (db: SQLiteDatabase, habitId: string) => Promise<void>;
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -113,6 +117,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     await deleteHabitDone(db, habitId, localDate);
     const logs = await listDoneLogs(db);
     set({ logs });
+  },
+
+  archiveHabit: async (db, habitId) => {
+    await archiveHabitRecord(db, habitId);
+    await get().loadApp(db);
+  },
+
+  deleteArchivedHabit: async (db, habitId) => {
+    await deleteArchivedHabitRecord(db, habitId);
+    await get().loadApp(db);
   },
 }));
 

@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { ArrowLeft, Check, X } from 'lucide-react-native';
-import { useEffect, useMemo } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { Archive, ArrowLeft, Check, X } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, ScrollView, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
@@ -15,11 +15,15 @@ export default function HabitDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
   const today = useMemo(() => getTodayLocalDate(), []);
+  const colorScheme = useColorScheme();
+  const destructiveTextColor = colorScheme === 'dark' ? '#fca5a5' : '#b91c1c';
   const habits = useAppStore((state) => state.habits);
   const logs = useAppStore((state) => state.logs);
   const loadApp = useAppStore((state) => state.loadApp);
   const markHabitDone = useAppStore((state) => state.markHabitDone);
   const markHabitNotDone = useAppStore((state) => state.markHabitNotDone);
+  const archiveHabit = useAppStore((state) => state.archiveHabit);
+  const [isArchiving, setIsArchiving] = useState(false);
   const habit = habits.find((item) => item.id === id);
   const summary = habit ? getHabitTrackingSummary(habit, logs, today) : undefined;
   const habitLogs = habit ? getLogsForHabit(logs, habit.id).slice(-8).reverse() : [];
@@ -48,6 +52,34 @@ export default function HabitDetailScreen() {
           style: 'destructive',
           onPress: () => {
             void markHabitNotDone(db, habit.id, today);
+          },
+        },
+      ],
+    );
+  };
+
+  const handleArchive = () => {
+    if (!habit) {
+      return;
+    }
+
+    Alert.alert(
+      'Archive habit?',
+      'Are you sure you want to archive this habit?\nThis habit can be accessed from settings page',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Archive',
+          style: 'destructive',
+          onPress: () => {
+            setIsArchiving(true);
+            void archiveHabit(db, habit.id)
+              .then(() => {
+                router.replace('/');
+              })
+              .finally(() => {
+                setIsArchiving(false);
+              });
           },
         },
       ],
@@ -160,6 +192,29 @@ export default function HabitDetailScreen() {
               ))}
             </View>
           )}
+        </Card>
+
+        <Card className="gap-4 border-red-200 bg-red-50 dark:border-red-400 dark:bg-charcoal-900">
+          <View className="gap-1">
+            <Text className="text-xl font-semibold text-charcoal-950 dark:text-sage-50">
+              Archive habit
+            </Text>
+            <Text className="text-base leading-6 text-charcoal-600 dark:text-sage-200">
+              Archived habits leave Today and can be deleted from Settings.
+            </Text>
+          </View>
+
+          <Button
+            variant="ghost"
+            disabled={isArchiving}
+            className={isArchiving ? 'opacity-60' : ''}
+            onPress={handleArchive}
+          >
+            <Archive size={18} color={destructiveTextColor} />
+            <Text className="text-base font-semibold text-red-700 dark:text-red-300">
+              {isArchiving ? 'Archiving...' : 'Archive'}
+            </Text>
+          </Button>
         </Card>
       </ScrollView>
     </SafeAreaView>
