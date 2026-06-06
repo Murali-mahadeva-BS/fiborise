@@ -43,6 +43,11 @@ export type CreateHabitInput = {
   reminderTime?: string;
 };
 
+export type UpdateHabitReminderInput = {
+  reminderEnabled: boolean;
+  reminderTime: string;
+};
+
 export type AppSettings = {
   onboardingCompletedAt?: string;
   weekStartsOn: 'monday';

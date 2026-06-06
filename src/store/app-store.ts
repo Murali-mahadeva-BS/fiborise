@@ -7,19 +7,29 @@ import {
   deleteArchivedHabit as deleteArchivedHabitRecord,
   listActiveHabits,
   listArchivedHabits,
+  updateHabitReminder as updateHabitReminderRecord,
 } from '@/features/habits/repository';
+import { getHabitTrackingSummary } from '@/features/habits/selectors';
 import {
   listDoneLogs,
   markHabitDone as saveHabitDone,
   markHabitNotDone as deleteHabitDone,
 } from '@/features/habits/log-repository';
-import { CreateHabitInput, Habit, HabitLog, AppSettings } from '@/features/habits/types';
+import {
+  AppSettings,
+  CreateHabitInput,
+  Habit,
+  HabitLog,
+  UpdateHabitReminderInput,
+} from '@/features/habits/types';
 import {
   completeOnboarding as saveOnboardingCompleted,
   getAppSettings,
   resetOnboarding as saveOnboardingReset,
 } from '@/features/settings/repository';
 import { getTodayLocalDate } from '@/lib/dates';
+import { cancelHabitReminder, scheduleHabitReminder } from '@/lib/notifications/reminders';
+import { defaultReminderTime } from '@/lib/reminders';
 
 type AppState = {
   isLoading: boolean;
@@ -38,6 +48,11 @@ type AppState = {
   markHabitNotDone: (db: SQLiteDatabase, habitId: string, localDate?: string) => Promise<void>;
   archiveHabit: (db: SQLiteDatabase, habitId: string) => Promise<void>;
   deleteArchivedHabit: (db: SQLiteDatabase, habitId: string) => Promise<void>;
+  updateHabitReminder: (
+    db: SQLiteDatabase,
+    habitId: string,
+    input: UpdateHabitReminderInput,
+  ) => Promise<boolean>;
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -84,6 +99,15 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   createHabit: async (db, input) => {
     const habit = await createHabitRecord(db, input);
+    if (habit.reminderEnabled && habit.reminderTime) {
+      const scheduled = await scheduleReminderForHabit(habit, [], habit.reminderTime);
+      if (!scheduled) {
+        await updateHabitReminderRecord(db, habit.id, {
+          reminderEnabled: false,
+          reminderTime: habit.reminderTime,
+        });
+      }
+    }
     const habits = await listActiveHabits(db);
     set({ habits });
     return habit;
@@ -111,25 +135,89 @@ export const useAppStore = create<AppState>((set, get) => ({
     await saveHabitDone(db, habit, priorLogs, localDate);
     const logs = await listDoneLogs(db);
     set({ logs });
+    await refreshReminderForHabit(db, habit, logs);
   },
 
   markHabitNotDone: async (db, habitId, localDate = getTodayLocalDate()) => {
     await deleteHabitDone(db, habitId, localDate);
     const logs = await listDoneLogs(db);
     set({ logs });
+
+    const habit = get().habits.find((item) => item.id === habitId);
+    if (habit) {
+      await refreshReminderForHabit(db, habit, logs);
+    }
   },
 
   archiveHabit: async (db, habitId) => {
+    await cancelHabitReminder(habitId);
     await archiveHabitRecord(db, habitId);
     await get().loadApp(db);
   },
 
   deleteArchivedHabit: async (db, habitId) => {
+    await cancelHabitReminder(habitId);
     await deleteArchivedHabitRecord(db, habitId);
     await get().loadApp(db);
+  },
+
+  updateHabitReminder: async (db, habitId, input) => {
+    const habit = get().habits.find((item) => item.id === habitId);
+
+    if (!habit) {
+      throw new Error('Habit not found');
+    }
+
+    const reminderTime = input.reminderTime || habit.reminderTime || defaultReminderTime;
+
+    if (input.reminderEnabled) {
+      const scheduled = await scheduleReminderForHabit(habit, get().logs, reminderTime);
+      if (!scheduled) {
+        return false;
+      }
+    } else {
+      await cancelHabitReminder(habit.id);
+    }
+
+    await updateHabitReminderRecord(db, habit.id, {
+      reminderEnabled: input.reminderEnabled,
+      reminderTime,
+    });
+    await get().loadApp(db);
+    return true;
   },
 }));
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Something went wrong';
+}
+
+async function refreshReminderForHabit(db: SQLiteDatabase, habit: Habit, logs: HabitLog[]) {
+  if (!habit.reminderEnabled || !habit.reminderTime) {
+    return;
+  }
+
+  const scheduled = await scheduleReminderForHabit(habit, logs, habit.reminderTime);
+  if (!scheduled) {
+    await updateHabitReminderRecord(db, habit.id, {
+      reminderEnabled: false,
+      reminderTime: habit.reminderTime,
+    });
+  }
+}
+
+async function scheduleReminderForHabit(
+  habit: Habit,
+  logs: HabitLog[],
+  reminderTime: string,
+): Promise<boolean> {
+  const today = getTodayLocalDate();
+  const summary = getHabitTrackingSummary(habit, logs, today);
+
+  return scheduleHabitReminder({
+    habitId: habit.id,
+    habitName: habit.name,
+    reminderTime,
+    targetLabel: summary.target.label,
+  });
 }

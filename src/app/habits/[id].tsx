@@ -1,14 +1,16 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { Archive, ArrowLeft, Check, X } from 'lucide-react-native';
+import { Archive, ArrowLeft, Bell, Check, X } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, Text, useColorScheme, View } from 'react-native';
+import { Alert, ScrollView, Switch, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ReminderTimePicker } from '@/components/reminder-time-picker';
 import { formatDisplayDate, getTodayLocalDate } from '@/lib/dates';
 import { getHabitTrackingSummary, getLogsForHabit } from '@/features/habits/selectors';
+import { defaultReminderTime, isValidReminderTime } from '@/lib/reminders';
 import { useAppStore } from '@/store/app-store';
 
 export default function HabitDetailScreen() {
@@ -23,7 +25,12 @@ export default function HabitDetailScreen() {
   const markHabitDone = useAppStore((state) => state.markHabitDone);
   const markHabitNotDone = useAppStore((state) => state.markHabitNotDone);
   const archiveHabit = useAppStore((state) => state.archiveHabit);
+  const updateHabitReminder = useAppStore((state) => state.updateHabitReminder);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderTime, setReminderTime] = useState(defaultReminderTime);
+  const [reminderTimeError, setReminderTimeError] = useState<string | undefined>();
+  const [isSavingReminder, setIsSavingReminder] = useState(false);
   const habit = habits.find((item) => item.id === id);
   const summary = habit ? getHabitTrackingSummary(habit, logs, today) : undefined;
   const habitLogs = habit ? getLogsForHabit(logs, habit.id).slice(-8).reverse() : [];
@@ -31,6 +38,16 @@ export default function HabitDetailScreen() {
   useEffect(() => {
     void loadApp(db);
   }, [db, loadApp]);
+
+  useEffect(() => {
+    if (!habit) {
+      return;
+    }
+
+    setReminderEnabled(habit.reminderEnabled);
+    setReminderTime(habit.reminderTime ?? defaultReminderTime);
+    setReminderTimeError(undefined);
+  }, [habit]);
 
   const handleNotDone = () => {
     if (!habit || !summary) {
@@ -84,6 +101,61 @@ export default function HabitDetailScreen() {
         },
       ],
     );
+  };
+
+  const persistReminder = async (nextEnabled: boolean, nextTime: string) => {
+    if (!habit) {
+      return false;
+    }
+
+    if (nextEnabled && !isValidReminderTime(nextTime)) {
+      setReminderTimeError('Use HH:mm format');
+      return false;
+    }
+
+    setIsSavingReminder(true);
+    try {
+      const updated = await updateHabitReminder(db, habit.id, {
+        reminderEnabled: nextEnabled,
+        reminderTime: nextTime,
+      });
+
+      if (!updated) {
+        Alert.alert('Notifications disabled', 'Allow notifications to enable habit reminders.');
+        setReminderEnabled(false);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      Alert.alert(
+        'Could not update reminder',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+      return false;
+    } finally {
+      setIsSavingReminder(false);
+    }
+  };
+
+  const handleReminderToggle = (enabled: boolean) => {
+    setReminderEnabled(enabled);
+    void persistReminder(enabled, reminderTime).then((saved) => {
+      if (!saved && enabled) {
+        setReminderEnabled(false);
+      }
+    });
+  };
+
+  const handleReminderTimeChange = (value: string) => {
+    setReminderTime(value);
+    setReminderTimeError(undefined);
+
+    if (!reminderEnabled) {
+      return;
+    }
+
+    void persistReminder(true, value);
   };
 
   if (!habit || !summary) {
@@ -165,6 +237,38 @@ export default function HabitDetailScreen() {
               value={`${summary.progress.doneDaysInLevel} / ${summary.progress.requiredDoneDays} days`}
             />
           </View>
+        </Card>
+
+        <Card className="gap-4">
+          <View className="flex-row items-start justify-between gap-4">
+            <View className="flex-1 flex-row gap-3">
+              <Bell size={22} color="#315c45" />
+              <View className="flex-1">
+                <Text className="text-xl font-semibold text-charcoal-950 dark:text-sage-50">
+                  Daily reminder
+                </Text>
+                <Text className="mt-1 text-base leading-6 text-charcoal-600 dark:text-sage-200">
+                  Reminder text includes this habit&apos;s target.
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={reminderEnabled}
+              disabled={isSavingReminder}
+              onValueChange={handleReminderToggle}
+              trackColor={{ false: '#cfe3c9', true: '#3f7657' }}
+              thumbColor={reminderEnabled ? '#f7fbf6' : '#ffffff'}
+            />
+          </View>
+
+          {reminderEnabled ? (
+            <ReminderTimePicker
+              label="Reminder time"
+              value={reminderTime}
+              error={reminderTimeError}
+              onChange={handleReminderTimeChange}
+            />
+          ) : null}
         </Card>
 
         <Card className="gap-4">

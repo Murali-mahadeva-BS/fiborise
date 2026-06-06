@@ -3,7 +3,7 @@ import { type SQLiteDatabase } from 'expo-sqlite';
 import { formatIsoTimestamp, getTodayLocalDate } from '@/lib/dates';
 import { createLocalId } from '@/lib/ids';
 
-import { CreateHabitInput, Habit } from './types';
+import { CreateHabitInput, Habit, UpdateHabitReminderInput } from './types';
 
 type HabitRow = {
   id: string;
@@ -121,6 +121,23 @@ export async function archiveHabit(
      SET archived_at = ?, reminder_enabled = 0, updated_at = ?
      WHERE id = ? AND archived_at IS NULL AND deleted_at IS NULL`,
     nowIso,
+    nowIso,
+    habitId,
+  );
+}
+
+export async function updateHabitReminder(
+  db: SQLiteDatabase,
+  habitId: string,
+  input: UpdateHabitReminderInput,
+  nowIso = formatIsoTimestamp(),
+) {
+  await db.runAsync(
+    `UPDATE habits
+     SET reminder_enabled = ?, reminder_time = ?, updated_at = ?
+     WHERE id = ? AND archived_at IS NULL AND deleted_at IS NULL`,
+    input.reminderEnabled ? 1 : 0,
+    input.reminderTime,
     nowIso,
     habitId,
   );

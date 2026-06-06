@@ -10,6 +10,8 @@ describe('habit form validation', () => {
       baseAmount: '0.5',
       unit: 'km',
       description: 'Evening walk',
+      reminderEnabled: true,
+      reminderTime: '18:30',
     });
 
     expect(result).toEqual({
@@ -20,7 +22,8 @@ describe('habit form validation', () => {
         baseAmount: 0.5,
         unit: 'km',
         description: 'Evening walk',
-        reminderEnabled: false,
+        reminderEnabled: true,
+        reminderTime: '18:30',
       },
     });
   });
@@ -32,6 +35,8 @@ describe('habit form validation', () => {
       baseAmount: '0',
       unit: 'm',
       description: '',
+      reminderEnabled: false,
+      reminderTime: '08:00',
     });
 
     expect(result).toMatchObject({
@@ -39,6 +44,25 @@ describe('habit form validation', () => {
       errors: {
         name: 'Name is required',
         baseAmount: 'Baseline must be greater than zero',
+      },
+    });
+  });
+
+  it('requires HH:mm time when reminders are enabled', () => {
+    const result = parseHabitForm({
+      name: 'Meditation',
+      icon: '🧘',
+      baseAmount: '5',
+      unit: 'min',
+      description: '',
+      reminderEnabled: true,
+      reminderTime: '8am',
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      errors: {
+        reminderTime: 'Use HH:mm format',
       },
     });
   });

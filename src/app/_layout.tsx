@@ -7,6 +7,9 @@ import { Suspense } from 'react';
 import { ActivityIndicator, useColorScheme, View } from 'react-native';
 
 import { databaseName, initializeDatabase } from '@/lib/storage/database';
+import { configureNotificationHandler } from '@/lib/notifications/reminders';
+
+configureNotificationHandler();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();

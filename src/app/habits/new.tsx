@@ -2,10 +2,12 @@ import { router } from 'expo-router';
 import { ArrowLeft, Check } from 'lucide-react-native';
 import { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
+  Switch,
   Text,
   View,
 } from 'react-native';
@@ -14,6 +16,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ReminderTimePicker } from '@/components/reminder-time-picker';
 import { TextField } from '@/components/ui/text-field';
 import {
   HabitFormErrors,
@@ -21,6 +24,8 @@ import {
   habitIconOptions,
   parseHabitForm,
 } from '@/features/habits/habit-form';
+import { requestReminderPermission } from '@/lib/notifications/reminders';
+import { defaultReminderTime } from '@/lib/reminders';
 import { useAppStore } from '@/store/app-store';
 
 const initialValues: HabitFormValues = {
@@ -29,6 +34,8 @@ const initialValues: HabitFormValues = {
   baseAmount: '',
   unit: '',
   description: '',
+  reminderEnabled: false,
+  reminderTime: defaultReminderTime,
 };
 
 export default function NewHabitScreen() {
@@ -43,6 +50,21 @@ export default function NewHabitScreen() {
     setErrors((current) => ({ ...current, [field]: undefined }));
   };
 
+  const updateReminderEnabled = async (enabled: boolean) => {
+    if (!enabled) {
+      setValues((current) => ({ ...current, reminderEnabled: false }));
+      return;
+    }
+
+    const granted = await requestReminderPermission();
+    if (!granted) {
+      Alert.alert('Notifications disabled', 'Allow notifications to enable habit reminders.');
+      return;
+    }
+
+    setValues((current) => ({ ...current, reminderEnabled: true }));
+  };
+
   const handleSubmit = async () => {
     const parsed = parseHabitForm(values);
 
@@ -55,6 +77,11 @@ export default function NewHabitScreen() {
     try {
       await createHabit(db, parsed.data);
       router.replace('/');
+    } catch (error) {
+      Alert.alert(
+        'Could not create habit',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -68,7 +95,8 @@ export default function NewHabitScreen() {
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerClassName="gap-6 px-5 pb-8 pt-4"
+          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerClassName="gap-6 px-5 pb-10 pt-4"
         >
           <View className="flex-row items-center gap-3">
             <Button variant="ghost" accessibilityLabel="Go back" onPress={() => router.back()}>
@@ -155,9 +183,43 @@ export default function NewHabitScreen() {
               placeholder="Optional note"
               onChangeText={(value) => updateField('description', value)}
             />
+
+            <View className="gap-4 rounded-2xl bg-sage-100 p-4 dark:bg-charcoal-800">
+              <View className="flex-row items-center justify-between gap-4">
+                <View className="flex-1">
+                  <Text className="text-lg font-semibold text-charcoal-950 dark:text-sage-50">
+                    Daily reminder
+                  </Text>
+                  <Text className="mt-1 text-base text-charcoal-600 dark:text-sage-200">
+                    Remind me about this habit.
+                  </Text>
+                </View>
+                <Switch
+                  value={values.reminderEnabled}
+                  onValueChange={(enabled) => {
+                    void updateReminderEnabled(enabled);
+                  }}
+                  trackColor={{ false: '#cfe3c9', true: '#3f7657' }}
+                  thumbColor={values.reminderEnabled ? '#f7fbf6' : '#ffffff'}
+                />
+              </View>
+
+              {values.reminderEnabled ? (
+                <ReminderTimePicker
+                  label="Reminder time"
+                  value={values.reminderTime}
+                  error={errors.reminderTime}
+                  onChange={(value) => updateField('reminderTime', value)}
+                />
+              ) : null}
+            </View>
           </Card>
 
-          <Button disabled={isSubmitting} className={isSubmitting ? 'opacity-60' : ''} onPress={handleSubmit}>
+          <Button
+            disabled={isSubmitting}
+            className={isSubmitting ? 'opacity-60' : ''}
+            onPress={handleSubmit}
+          >
             <Check size={20} color="#f7fbf6" />
             <Text className="text-base font-semibold text-sage-50">
               {isSubmitting ? 'Creating...' : 'Create habit'}
