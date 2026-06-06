@@ -71,7 +71,9 @@ export function getTodayTarget(
     level: progress.level,
     amount: progress.targetAmount,
     unit: habit.unit,
-    label: requiresAmount ? `${formatAmount(progress.targetAmount)} ${habit.unit}` : 'Just mark done',
+    label: requiresAmount
+      ? `${formatTargetAmount(progress.targetAmount)} ${habit.unit}`
+      : 'Just mark done',
     requiresAmount,
     requiredDoneDays: progress.requiredDoneDays,
     doneDaysInLevel: progress.doneDaysInLevel,
@@ -167,7 +169,7 @@ function reduceDoneLogsToProgress(
   };
 }
 
-function formatAmount(amount: number): string {
+export function formatTargetAmount(amount: number): string {
   return Number.isInteger(amount) ? String(amount) : String(Number(amount.toFixed(3)));
 }
 

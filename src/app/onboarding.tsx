@@ -1,12 +1,22 @@
-import { Link } from 'expo-router';
-import { ArrowRight } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
+import { ArrowRight, Check } from 'lucide-react-native';
 import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useAppStore } from '@/store/app-store';
 
 export default function OnboardingScreen() {
+  const db = useSQLiteContext();
+  const completeOnboarding = useAppStore((state) => state.completeOnboarding);
+
+  const finishOnboarding = async (nextRoute: '/' | '/habits/new') => {
+    await completeOnboarding(db);
+    router.replace(nextRoute);
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-sage-50 px-5 py-6 dark:bg-charcoal-950">
       <View className="flex-1 justify-between">
@@ -34,12 +44,25 @@ export default function OnboardingScreen() {
           </Card>
         </View>
 
-        <Link href="/habits/new" asChild>
-          <Button>
+        <View className="gap-3">
+          <Button
+            onPress={() => {
+              void finishOnboarding('/habits/new');
+            }}
+          >
             <Text className="text-base font-semibold text-sage-50">Create first habit</Text>
             <ArrowRight size={20} color="#f7fbf6" />
           </Button>
-        </Link>
+          <Button
+            variant="ghost"
+            onPress={() => {
+              void finishOnboarding('/');
+            }}
+          >
+            <Check size={20} color="#315c45" />
+            <Text className="text-base font-semibold text-moss-700 dark:text-sage-50">Skip</Text>
+          </Button>
+        </View>
       </View>
     </SafeAreaView>
   );

@@ -1,21 +1,170 @@
-import { Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { ArrowLeft, Check } from 'lucide-react-native';
+import { useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSQLiteContext } from 'expo-sqlite';
 
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { TextField } from '@/components/ui/text-field';
+import {
+  HabitFormErrors,
+  HabitFormValues,
+  habitIconOptions,
+  parseHabitForm,
+} from '@/features/habits/habit-form';
+import { useAppStore } from '@/store/app-store';
+
+const initialValues: HabitFormValues = {
+  name: '',
+  icon: habitIconOptions[0],
+  baseAmount: '',
+  unit: '',
+  description: '',
+};
 
 export default function NewHabitScreen() {
+  const db = useSQLiteContext();
+  const createHabit = useAppStore((state) => state.createHabit);
+  const [values, setValues] = useState(initialValues);
+  const [errors, setErrors] = useState<HabitFormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const updateField = (field: keyof HabitFormValues, value: string) => {
+    setValues((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: undefined }));
+  };
+
+  const handleSubmit = async () => {
+    const parsed = parseHabitForm(values);
+
+    if (!parsed.ok) {
+      setErrors(parsed.errors);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await createHabit(db, parsed.data);
+      router.replace('/');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-sage-50 px-5 py-6 dark:bg-charcoal-950">
-      <View className="gap-6">
-        <Text className="text-3xl font-bold text-charcoal-950 dark:text-sage-50">
-          New habit
-        </Text>
-        <Card>
-          <Text className="text-base leading-6 text-charcoal-600 dark:text-sage-200">
-            Habit creation form will be built after storage and form foundations are in place.
-          </Text>
-        </Card>
-      </View>
+    <SafeAreaView className="flex-1 bg-sage-50 dark:bg-charcoal-950">
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerClassName="gap-6 px-5 pb-8 pt-4"
+        >
+          <View className="flex-row items-center gap-3">
+            <Button variant="ghost" accessibilityLabel="Go back" onPress={() => router.back()}>
+              <ArrowLeft size={22} color="#315c45" />
+            </Button>
+            <View>
+              <Text className="text-3xl font-bold text-charcoal-950 dark:text-sage-50">
+                New habit
+              </Text>
+              <Text className="mt-1 text-base text-charcoal-600 dark:text-sage-200">
+                Start at Level 0 today.
+              </Text>
+            </View>
+          </View>
+
+          <Card className="gap-5">
+            <View className="gap-3">
+              <Text className="text-sm font-semibold text-charcoal-700 dark:text-sage-100">
+                Icon
+              </Text>
+              <View className="flex-row flex-wrap gap-2">
+                {habitIconOptions.map((icon) => {
+                  const selected = values.icon === icon;
+
+                  return (
+                    <Pressable
+                      key={icon}
+                      className={`h-12 w-12 items-center justify-center rounded-2xl border ${
+                        selected
+                          ? 'border-moss-700 bg-moss-700'
+                          : 'border-sage-200 bg-sage-50 dark:border-charcoal-700 dark:bg-charcoal-800'
+                      }`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Use ${icon} icon`}
+                      onPress={() => updateField('icon', icon)}
+                    >
+                      <Text className="text-2xl">{icon}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <TextField
+              label="Habit name"
+              value={values.name}
+              error={errors.name}
+              autoCapitalize="words"
+              returnKeyType="next"
+              placeholder="Running"
+              onChangeText={(value) => updateField('name', value)}
+            />
+
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <TextField
+                  label="Baseline"
+                  value={values.baseAmount}
+                  error={errors.baseAmount}
+                  keyboardType="decimal-pad"
+                  placeholder="100"
+                  onChangeText={(value) => updateField('baseAmount', value)}
+                />
+              </View>
+              <View className="flex-1">
+                <TextField
+                  label="Unit"
+                  value={values.unit}
+                  error={errors.unit}
+                  autoCapitalize="none"
+                  placeholder="m"
+                  onChangeText={(value) => updateField('unit', value)}
+                />
+              </View>
+            </View>
+
+            <TextField
+              label="Description"
+              value={values.description}
+              error={errors.description}
+              multiline
+              textAlignVertical="top"
+              className="min-h-24"
+              placeholder="Optional note"
+              onChangeText={(value) => updateField('description', value)}
+            />
+          </Card>
+
+          <Button disabled={isSubmitting} className={isSubmitting ? 'opacity-60' : ''} onPress={handleSubmit}>
+            <Check size={20} color="#f7fbf6" />
+            <Text className="text-base font-semibold text-sage-50">
+              {isSubmitting ? 'Creating...' : 'Create habit'}
+            </Text>
+          </Button>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
