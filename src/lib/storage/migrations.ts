@@ -55,6 +55,14 @@ const migrations = [
         ON habit_logs (habit_id, local_date);
     `,
   },
+  {
+    version: 2,
+    name: 'add_log_progress_flag',
+    sql: `
+      ALTER TABLE habit_logs
+      ADD COLUMN counts_toward_progress INTEGER NOT NULL DEFAULT 1;
+    `,
+  },
 ];
 
 type MigrationVersionRow = {

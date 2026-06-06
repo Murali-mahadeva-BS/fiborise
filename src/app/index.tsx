@@ -138,16 +138,25 @@ export default function HomeScreen() {
                           {habit.name}
                         </Text>
                         <Text className="mt-1 text-sm text-charcoal-600 dark:text-sage-200">
-                          Level {summary.target.level} · {progressText}
+                          Level {summary.target.level} - {progressText}
                         </Text>
                       </View>
                     </View>
 
-                    {summary.doneToday ? (
-                      <View className="rounded-full bg-moss-700 px-3 py-1">
-                        <Text className="text-xs font-semibold text-sage-50">Done</Text>
-                      </View>
-                    ) : null}
+                    <View className="items-end gap-2">
+                      {habit.stayModeEnabled ? (
+                        <View className="rounded-full bg-sage-200 px-3 py-1 dark:bg-charcoal-800">
+                          <Text className="text-xs font-semibold text-moss-700 dark:text-moss-200">
+                            Stay
+                          </Text>
+                        </View>
+                      ) : null}
+                      {summary.doneToday ? (
+                        <View className="rounded-full bg-moss-700 px-3 py-1">
+                          <Text className="text-xs font-semibold text-sage-50">Done</Text>
+                        </View>
+                      ) : null}
+                    </View>
                   </View>
 
                   <View className="rounded-2xl bg-sage-100 p-4 dark:bg-charcoal-800">

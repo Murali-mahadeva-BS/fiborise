@@ -100,6 +100,7 @@ export function buildDoneLog(
     levelSequencePosition: target.levelSequencePosition,
     level: target.level,
     plannedAmount: target.amount,
+    countsTowardProgress: !habit.stayModeEnabled,
     createdAt: nowIso,
     updatedAt: nowIso,
   };
@@ -142,7 +143,8 @@ function reduceDoneLogsToProgress(
       (log) =>
         log.habitId === habit.id &&
         log.localDate >= habit.startDate &&
-        log.localDate <= today,
+        log.localDate <= today &&
+        log.countsTowardProgress !== false,
     )
     .sort((left, right) => left.localDate.localeCompare(right.localDate));
 

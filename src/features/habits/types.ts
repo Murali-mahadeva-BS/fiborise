@@ -28,6 +28,7 @@ export type HabitLog = {
   levelSequencePosition: number;
   level: number;
   plannedAmount: number;
+  countsTowardProgress?: boolean;
   note?: string;
   createdAt: string;
   updatedAt: string;

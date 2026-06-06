@@ -8,6 +8,7 @@ import {
   listActiveHabits,
   listArchivedHabits,
   updateHabitReminder as updateHabitReminderRecord,
+  updateHabitStayMode as updateHabitStayModeRecord,
 } from '@/features/habits/repository';
 import { getHabitTrackingSummary } from '@/features/habits/selectors';
 import {
@@ -28,6 +29,7 @@ import {
   resetOnboarding as saveOnboardingReset,
 } from '@/features/settings/repository';
 import { getTodayLocalDate } from '@/lib/dates';
+import { getCurrentLevelProgress } from '@/lib/levels';
 import { cancelHabitReminder, scheduleHabitReminder } from '@/lib/notifications/reminders';
 import { defaultReminderTime } from '@/lib/reminders';
 
@@ -53,6 +55,7 @@ type AppState = {
     habitId: string,
     input: UpdateHabitReminderInput,
   ) => Promise<boolean>;
+  updateHabitStayMode: (db: SQLiteDatabase, habitId: string, enabled: boolean) => Promise<void>;
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -185,6 +188,42 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     await get().loadApp(db);
     return true;
+  },
+
+  updateHabitStayMode: async (db, habitId, enabled) => {
+    const state = get();
+    const habit = state.habits.find((item) => item.id === habitId);
+
+    if (!habit) {
+      throw new Error('Habit not found');
+    }
+
+    if (enabled) {
+      const today = getTodayLocalDate();
+      const progress = getCurrentLevelProgress(
+        state.logs.filter((log) => log.habitId === habit.id),
+        { ...habit, stayModeEnabled: false },
+        today,
+      );
+
+      await updateHabitStayModeRecord(db, habit.id, {
+        stayModeEnabled: true,
+        levelSequencePosition: progress.levelSequencePosition,
+        level: progress.level,
+        targetAmount: progress.targetAmount,
+        doneDaysInLevel: progress.doneDaysInLevel,
+      });
+    } else {
+      await updateHabitStayModeRecord(db, habit.id, {
+        stayModeEnabled: false,
+      });
+    }
+
+    await get().loadApp(db);
+    const updatedHabit = get().habits.find((item) => item.id === habitId);
+    if (updatedHabit) {
+      await refreshReminderForHabit(db, updatedHabit, get().logs);
+    }
   },
 }));
 

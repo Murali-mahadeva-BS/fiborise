@@ -143,6 +143,37 @@ export async function updateHabitReminder(
   );
 }
 
+export async function updateHabitStayMode(
+  db: SQLiteDatabase,
+  habitId: string,
+  input: {
+    stayModeEnabled: boolean;
+    levelSequencePosition?: number;
+    level?: number;
+    targetAmount?: number;
+    doneDaysInLevel?: number;
+  },
+  nowIso = formatIsoTimestamp(),
+) {
+  await db.runAsync(
+    `UPDATE habits
+     SET stay_mode_enabled = ?,
+         stay_mode_level_sequence_position = ?,
+         stay_mode_level = ?,
+         stay_mode_target_amount = ?,
+         stay_mode_done_days_in_level = ?,
+         updated_at = ?
+     WHERE id = ? AND archived_at IS NULL AND deleted_at IS NULL`,
+    input.stayModeEnabled ? 1 : 0,
+    input.stayModeEnabled ? input.levelSequencePosition ?? null : null,
+    input.stayModeEnabled ? input.level ?? null : null,
+    input.stayModeEnabled ? input.targetAmount ?? null : null,
+    input.stayModeEnabled ? input.doneDaysInLevel ?? null : null,
+    nowIso,
+    habitId,
+  );
+}
+
 export async function deleteArchivedHabit(
   db: SQLiteDatabase,
   habitId: string,

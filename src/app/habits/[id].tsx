@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { Archive, ArrowLeft, Bell, Check, X } from 'lucide-react-native';
+import { Archive, ArrowLeft, Bell, Check, CirclePause, X } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, Switch, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,7 +28,9 @@ export default function HabitDetailScreen() {
   const markHabitNotDone = useAppStore((state) => state.markHabitNotDone);
   const archiveHabit = useAppStore((state) => state.archiveHabit);
   const updateHabitReminder = useAppStore((state) => state.updateHabitReminder);
+  const updateHabitStayMode = useAppStore((state) => state.updateHabitStayMode);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [isSavingStayMode, setIsSavingStayMode] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState(defaultReminderTime);
   const [reminderTimeError, setReminderTimeError] = useState<string | undefined>();
@@ -162,6 +164,24 @@ export default function HabitDetailScreen() {
     void persistReminder(true, value);
   };
 
+  const handleStayModeToggle = (enabled: boolean) => {
+    if (!habit) {
+      return;
+    }
+
+    setIsSavingStayMode(true);
+    void updateHabitStayMode(db, habit.id, enabled)
+      .catch((error) => {
+        Alert.alert(
+          'Could not update Stay Mode',
+          error instanceof Error ? error.message : 'Please try again.',
+        );
+      })
+      .finally(() => {
+        setIsSavingStayMode(false);
+      });
+  };
+
   if (!habit || !summary) {
     return (
       <SafeAreaView className="flex-1 bg-sage-50 px-5 py-6 dark:bg-charcoal-950">
@@ -241,6 +261,39 @@ export default function HabitDetailScreen() {
               value={`${summary.progress.doneDaysInLevel} / ${summary.progress.requiredDoneDays} days`}
             />
           </View>
+        </Card>
+
+        <Card className="gap-4">
+          <View className="flex-row items-start justify-between gap-4">
+            <View className="flex-1 flex-row gap-3">
+              <CirclePause size={22} color="#315c45" />
+              <View className="flex-1">
+                <Text className="text-xl font-semibold text-charcoal-950 dark:text-sage-50">
+                  Stay Mode
+                </Text>
+                <Text className="mt-1 text-base leading-6 text-charcoal-600 dark:text-sage-200">
+                  Keep the current target while done days continue in reports.
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={habit.stayModeEnabled}
+              disabled={isSavingStayMode}
+              onValueChange={handleStayModeToggle}
+              trackColor={{ false: '#cfe3c9', true: '#3f7657' }}
+              thumbColor={habit.stayModeEnabled ? '#f7fbf6' : '#ffffff'}
+            />
+          </View>
+          {habit.stayModeEnabled ? (
+            <View className="rounded-2xl bg-sage-100 p-4 dark:bg-charcoal-800">
+              <Text className="text-sm font-semibold uppercase tracking-wide text-moss-700 dark:text-moss-200">
+                Maintenance target
+              </Text>
+              <Text className="mt-1 text-2xl font-bold text-charcoal-950 dark:text-sage-50">
+                {summary.target.label}
+              </Text>
+            </View>
+          ) : null}
         </Card>
 
         {report ? <HabitReportSection report={report} unit={habit.unit} /> : null}

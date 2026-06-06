@@ -11,6 +11,7 @@ type HabitLogRow = {
   level_sequence_position: number;
   level: number;
   planned_amount: number;
+  counts_toward_progress: number;
   note: string | null;
   created_at: string;
   updated_at: string;
@@ -52,15 +53,16 @@ export async function markHabitDone(
   await db.runAsync(
     `INSERT OR REPLACE INTO habit_logs (
        id, habit_id, local_date, level_sequence_position, level,
-       planned_amount, note, created_at, updated_at
+       planned_amount, counts_toward_progress, note, created_at, updated_at
      )
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     log.id,
     log.habitId,
     log.localDate,
     log.levelSequencePosition,
     log.level,
     log.plannedAmount,
+    log.countsTowardProgress === false ? 0 : 1,
     log.note ?? null,
     log.createdAt,
     log.updatedAt,
@@ -90,6 +92,7 @@ function mapHabitLogRow(row: HabitLogRow): HabitLog {
     levelSequencePosition: row.level_sequence_position,
     level: row.level,
     plannedAmount: row.planned_amount,
+    countsTowardProgress: row.counts_toward_progress === 1,
     note: row.note ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

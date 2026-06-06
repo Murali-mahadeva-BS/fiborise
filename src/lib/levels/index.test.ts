@@ -135,4 +135,36 @@ describe('Level engine', () => {
       doneDaysInLevel: 1,
     });
   });
+
+  it('does not count stay mode done logs toward future progression', () => {
+    const growthLogs = [
+      buildDoneLog(habit, [], '2026-06-01'),
+      buildDoneLog(habit, [], '2026-06-02'),
+      buildDoneLog(habit, [], '2026-06-03'),
+    ];
+    const stayModeHabit: Habit = {
+      ...habit,
+      stayModeEnabled: true,
+      stayModeLevelSequencePosition: 3,
+      stayModeLevel: 2,
+      stayModeTargetAmount: 200,
+      stayModeDoneDaysInLevel: 0,
+    };
+    const stayModeLog = buildDoneLog(stayModeHabit, growthLogs, '2026-06-04');
+
+    expect(stayModeLog).toMatchObject({
+      levelSequencePosition: 3,
+      level: 2,
+      plannedAmount: 200,
+      countsTowardProgress: false,
+    });
+
+    expect(
+      getCurrentLevelProgress([...growthLogs, stayModeLog], habit, '2026-06-05'),
+    ).toMatchObject({
+      levelSequencePosition: 3,
+      level: 2,
+      doneDaysInLevel: 0,
+    });
+  });
 });
