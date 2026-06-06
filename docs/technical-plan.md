@@ -2,7 +2,7 @@
 
 ## Recommended Stack
 
-- App framework: React Native with Expo and TypeScript.
+- App framework: React Native with Expo SDK 54 and TypeScript.
 - Navigation: Expo Router.
 - Styling: NativeWind.
 - UI components: custom in-repo components.
@@ -18,6 +18,7 @@
 Why this stack:
 
 - Expo keeps Android-first development fast while preserving an iOS path.
+- SDK 54 is used for now because Expo Go for SDK 56 is not available through the Play Store/App Store during the SDK 56 transition window.
 - SQLite matches the local-first requirement and makes future cloud migration predictable.
 - NativeWind and custom components avoid a Material Design look while keeping styling fast to iterate.
 - Zustand gives simple global state without Redux-level boilerplate.
