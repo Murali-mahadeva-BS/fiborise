@@ -10,6 +10,8 @@ import { Card } from '@/components/ui/card';
 import { ReminderTimePicker } from '@/components/reminder-time-picker';
 import { formatDisplayDate, getTodayLocalDate } from '@/lib/dates';
 import { getHabitTrackingSummary, getLogsForHabit } from '@/features/habits/selectors';
+import { HabitReportSection } from '@/features/reports/components/habit-report-section';
+import { buildHabitReport } from '@/features/reports/calculations';
 import { defaultReminderTime, isValidReminderTime } from '@/lib/reminders';
 import { useAppStore } from '@/store/app-store';
 
@@ -33,7 +35,9 @@ export default function HabitDetailScreen() {
   const [isSavingReminder, setIsSavingReminder] = useState(false);
   const habit = habits.find((item) => item.id === id);
   const summary = habit ? getHabitTrackingSummary(habit, logs, today) : undefined;
-  const habitLogs = habit ? getLogsForHabit(logs, habit.id).slice(-8).reverse() : [];
+  const allHabitLogs = habit ? getLogsForHabit(logs, habit.id) : [];
+  const habitLogs = allHabitLogs.slice(-8).reverse();
+  const report = habit ? buildHabitReport(habit, logs, today) : undefined;
 
   useEffect(() => {
     void loadApp(db);
@@ -238,6 +242,8 @@ export default function HabitDetailScreen() {
             />
           </View>
         </Card>
+
+        {report ? <HabitReportSection report={report} unit={habit.unit} /> : null}
 
         <Card className="gap-4">
           <View className="flex-row items-start justify-between gap-4">
