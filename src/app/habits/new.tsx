@@ -46,6 +46,7 @@ export default function NewHabitScreen() {
   const db = useSQLiteContext();
   const createHabit = useAppStore((state) => state.createHabit);
   const scrollViewRef = useRef<ScrollView>(null);
+  const descriptionInputY = useRef(0);
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<HabitFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,28 +61,34 @@ export default function NewHabitScreen() {
     setErrors((current) => ({ ...current, [field]: undefined }));
   };
 
-  const scrollToFormEnd = () => {
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 250);
+  const scrollToDescription = () => {
+    const scroll = () => {
+      scrollViewRef.current?.scrollTo({
+        y: Math.max(descriptionInputY.current - 24, 0),
+        animated: true,
+      });
+    };
+
+    setTimeout(scroll, 80);
+    setTimeout(scroll, 320);
   };
 
   const updateReminderEnabled = async (enabled: boolean) => {
+    setValues((current) => ({ ...current, reminderEnabled: enabled }));
+
     if (!enabled) {
-      setValues((current) => ({ ...current, reminderEnabled: false }));
       return;
     }
 
     const granted = await requestReminderPermission();
     if (!granted) {
+      setValues((current) => ({ ...current, reminderEnabled: false }));
       Alert.alert(
         "Notifications disabled",
         "Allow notifications to enable habit reminders.",
       );
       return;
     }
-
-    setValues((current) => ({ ...current, reminderEnabled: true }));
   };
 
   const handleSubmit = async () => {
@@ -117,8 +124,8 @@ export default function NewHabitScreen() {
           automaticallyAdjustKeyboardInsets
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ flexGrow: 1 }}
-          contentContainerClassName="gap-6 px-5 pb-10 pt-4"
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 192 }}
+          contentContainerClassName="gap-6 px-5 pt-4"
         >
           <View className="flex-row items-center gap-3">
             <Link href="/?transition=back" asChild>
@@ -175,17 +182,23 @@ export default function NewHabitScreen() {
               </View>
             </View>
 
-            <TextField
-              label="Description"
-              value={values.description}
-              error={errors.description}
-              multiline
-              textAlignVertical="top"
-              className="min-h-24"
-              placeholder="Optional note"
-              onFocus={scrollToFormEnd}
-              onChangeText={(value) => updateField("description", value)}
-            />
+            <View
+              onLayout={(event) => {
+                descriptionInputY.current = event.nativeEvent.layout.y;
+              }}
+            >
+              <TextField
+                label="Description"
+                value={values.description}
+                error={errors.description}
+                multiline
+                textAlignVertical="top"
+                className="min-h-24"
+                placeholder="Optional note"
+                onFocus={scrollToDescription}
+                onChangeText={(value) => updateField("description", value)}
+              />
+            </View>
 
             <View className="gap-4 rounded-2xl bg-sage-100 p-4 dark:bg-charcoal-800">
               <View className="flex-row items-center justify-between gap-4">

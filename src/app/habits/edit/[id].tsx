@@ -29,6 +29,7 @@ export default function EditHabitScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
   const scrollViewRef = useRef<ScrollView>(null);
+  const descriptionInputY = useRef(0);
   const habits = useAppStore((state) => state.habits);
   const updateHabitIdentity = useAppStore((state) => state.updateHabitIdentity);
   const updateHabitReminder = useAppStore((state) => state.updateHabitReminder);
@@ -69,28 +70,34 @@ export default function EditHabitScreen() {
     setReminderTimeError(undefined);
   }, [habit]);
 
-  const scrollToFormEnd = () => {
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 250);
+  const scrollToDescription = () => {
+    const scroll = () => {
+      scrollViewRef.current?.scrollTo({
+        y: Math.max(descriptionInputY.current - 24, 0),
+        animated: true,
+      });
+    };
+
+    setTimeout(scroll, 80);
+    setTimeout(scroll, 320);
   };
 
   const updateReminderEnabled = async (enabled: boolean) => {
+    setReminderEnabled(enabled);
+
     if (!enabled) {
-      setReminderEnabled(false);
       return;
     }
 
     const granted = await requestReminderPermission();
     if (!granted) {
+      setReminderEnabled(false);
       Alert.alert(
         "Notifications disabled",
         "Allow notifications to enable habit reminders.",
       );
       return;
     }
-
-    setReminderEnabled(true);
   };
 
   const handleReminderTimeChange = (value: string) => {
@@ -184,7 +191,8 @@ export default function EditHabitScreen() {
           automaticallyAdjustKeyboardInsets
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
-          contentContainerClassName="gap-6 px-5 pb-10 pt-4"
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 192 }}
+          contentContainerClassName="gap-6 px-5 pt-4"
         >
           <View className="flex-row items-center gap-3">
             <Link href={`/habits/${habit.id}?transition=back`} asChild>
@@ -237,20 +245,26 @@ export default function EditHabitScreen() {
               </View>
             </View>
 
-            <TextField
-              label="Description"
-              value={description}
-              error={descriptionError}
-              multiline
-              textAlignVertical="top"
-              className="min-h-24"
-              placeholder="Optional note"
-              onFocus={scrollToFormEnd}
-              onChangeText={(value) => {
-                setDescription(value);
-                setDescriptionError(undefined);
+            <View
+              onLayout={(event) => {
+                descriptionInputY.current = event.nativeEvent.layout.y;
               }}
-            />
+            >
+              <TextField
+                label="Description"
+                value={description}
+                error={descriptionError}
+                multiline
+                textAlignVertical="top"
+                className="min-h-24"
+                placeholder="Optional note"
+                onFocus={scrollToDescription}
+                onChangeText={(value) => {
+                  setDescription(value);
+                  setDescriptionError(undefined);
+                }}
+              />
+            </View>
 
             <View className="gap-4 rounded-2xl bg-sage-100 p-4 dark:bg-charcoal-800">
               <View className="flex-row items-center justify-between gap-4">
