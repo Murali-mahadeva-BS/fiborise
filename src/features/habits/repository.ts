@@ -1,9 +1,14 @@
-import { type SQLiteDatabase } from 'expo-sqlite';
+import { type SQLiteDatabase } from "expo-sqlite";
 
-import { formatIsoTimestamp, getTodayLocalDate } from '@/lib/dates';
-import { createLocalId } from '@/lib/ids';
+import { formatIsoTimestamp, getTodayLocalDate } from "@/lib/dates";
+import { createLocalId } from "@/lib/ids";
 
-import { CreateHabitInput, Habit, UpdateHabitReminderInput } from './types';
+import {
+  CreateHabitInput,
+  Habit,
+  UpdateHabitIdentityInput,
+  UpdateHabitReminderInput,
+} from "./types";
 
 type HabitRow = {
   id: string;
@@ -48,7 +53,10 @@ export async function listArchivedHabits(db: SQLiteDatabase): Promise<Habit[]> {
   return rows.map(mapHabitRow);
 }
 
-export async function getHabitById(db: SQLiteDatabase, id: string): Promise<Habit | undefined> {
+export async function getHabitById(
+  db: SQLiteDatabase,
+  id: string,
+): Promise<Habit | undefined> {
   const row = await db.getFirstAsync<HabitRow>(
     `SELECT *
      FROM habits
@@ -66,7 +74,7 @@ export async function createHabit(
 ): Promise<Habit> {
   const nowIso = options.nowIso ?? formatIsoTimestamp();
   const habit: Habit = {
-    id: options.id ?? createLocalId('habit'),
+    id: options.id ?? createLocalId("habit"),
     name: input.name.trim(),
     icon: input.icon.trim(),
     description: input.description?.trim() || undefined,
@@ -126,6 +134,20 @@ export async function archiveHabit(
   );
 }
 
+export async function restoreHabit(
+  db: SQLiteDatabase,
+  habitId: string,
+  nowIso = formatIsoTimestamp(),
+) {
+  await db.runAsync(
+    `UPDATE habits
+     SET archived_at = NULL, updated_at = ?
+     WHERE id = ? AND archived_at IS NOT NULL AND deleted_at IS NULL`,
+    nowIso,
+    habitId,
+  );
+}
+
 export async function updateHabitReminder(
   db: SQLiteDatabase,
   habitId: string,
@@ -138,6 +160,24 @@ export async function updateHabitReminder(
      WHERE id = ? AND archived_at IS NULL AND deleted_at IS NULL`,
     input.reminderEnabled ? 1 : 0,
     input.reminderTime,
+    nowIso,
+    habitId,
+  );
+}
+
+export async function updateHabitIdentity(
+  db: SQLiteDatabase,
+  habitId: string,
+  input: UpdateHabitIdentityInput,
+  nowIso = formatIsoTimestamp(),
+) {
+  await db.runAsync(
+    `UPDATE habits
+     SET name = ?, icon = ?, description = ?, updated_at = ?
+     WHERE id = ? AND archived_at IS NULL AND deleted_at IS NULL`,
+    input.name.trim(),
+    input.icon.trim(),
+    input.description?.trim() || null,
     nowIso,
     habitId,
   );
@@ -165,10 +205,10 @@ export async function updateHabitStayMode(
          updated_at = ?
      WHERE id = ? AND archived_at IS NULL AND deleted_at IS NULL`,
     input.stayModeEnabled ? 1 : 0,
-    input.stayModeEnabled ? input.levelSequencePosition ?? null : null,
-    input.stayModeEnabled ? input.level ?? null : null,
-    input.stayModeEnabled ? input.targetAmount ?? null : null,
-    input.stayModeEnabled ? input.doneDaysInLevel ?? null : null,
+    input.stayModeEnabled ? (input.levelSequencePosition ?? null) : null,
+    input.stayModeEnabled ? (input.level ?? null) : null,
+    input.stayModeEnabled ? (input.targetAmount ?? null) : null,
+    input.stayModeEnabled ? (input.doneDaysInLevel ?? null) : null,
     nowIso,
     habitId,
   );
@@ -201,7 +241,8 @@ function mapHabitRow(row: HabitRow): Habit {
     reminderEnabled: row.reminder_enabled === 1,
     reminderTime: row.reminder_time ?? undefined,
     stayModeEnabled: row.stay_mode_enabled === 1,
-    stayModeLevelSequencePosition: row.stay_mode_level_sequence_position ?? undefined,
+    stayModeLevelSequencePosition:
+      row.stay_mode_level_sequence_position ?? undefined,
     stayModeLevel: row.stay_mode_level ?? undefined,
     stayModeTargetAmount: row.stay_mode_target_amount ?? undefined,
     stayModeDoneDaysInLevel: row.stay_mode_done_days_in_level ?? undefined,

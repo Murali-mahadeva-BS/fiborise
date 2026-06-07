@@ -17,8 +17,8 @@ It uses a Fibonacci-based level progression system to help users grow habits gen
 - Level progress advances only when the user marks today done.
 - Decimal baseline amounts and free-text units.
 - Local SQLite storage with stable IDs, timestamps, and schema migrations.
-- Reports for streaks, weekly completion, cumulative volume, and level timeline.
-- Android-first design with system light/dark theming.
+- Reports for streaks, monthly completion grids, and cumulative volume with Level milestones.
+- Android-first design with system, light, and dark theming.
 
 ## Tech stack
 

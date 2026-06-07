@@ -88,21 +88,11 @@ MVP behavior:
 - Active habits can be archived.
 - Archived habits stop reminders automatically.
 - Archived habits are accessible from Settings.
+- Archived habits can be restored from Settings.
 - Habits cannot be deleted directly from the active habits list.
 - Archived habits can be deleted after confirmation.
 
 ## User Stories
-
-### Onboarding
-
-As a first-time user, I see a short onboarding that explains the Level system and local-first behavior.
-
-Acceptance criteria:
-
-- Onboarding is concise.
-- User can continue directly to creating a habit.
-- User can skip onboarding.
-- Onboarding is shown only once unless reset from Settings in a future version.
 
 ### Habit Creation
 
@@ -113,7 +103,7 @@ Acceptance criteria:
 - Start date defaults to today's local date.
 - Base amount must be greater than zero and may be decimal.
 - Unit is free text.
-- Icon can be selected from a small built-in list, with emoji fallback if practical.
+- Icon can be selected from a searchable built-in list of app icons and emojis.
 - The first daily target is Level 0: just mark done.
 - Habit appears on the home screen after creation.
 
@@ -174,9 +164,7 @@ Acceptance criteria:
 Required graphs:
 
 - Calendar heatmap or monthly completion grid.
-- Weekly done bar chart.
-- Cumulative amount line chart.
-- Level timeline showing when targets changed.
+- Cumulative amount line chart with Level milestone dots.
 
 Graph conventions:
 
@@ -223,6 +211,6 @@ Acceptance criteria for MVP architecture:
 - Reports focus on done/progress, not missed counts.
 - Units are free text.
 - Baseline amount can be decimal.
-- No pause mode in MVP.
+- Theme supports system, light, and dark modes.
 - Import/export is skipped in MVP.
 - Archived habits live in Settings.

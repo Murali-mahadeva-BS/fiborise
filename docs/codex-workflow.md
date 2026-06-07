@@ -116,7 +116,7 @@ Review the uncommitted changes against @docs/product-requirements.md and @AGENTS
 7. Add stay mode.
 8. Add reports.
 9. Add reminders.
-10. Add export/import.
+10. Polish Android testing states and internal build readiness.
 
 ## Operating Rules
 

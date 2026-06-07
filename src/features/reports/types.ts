@@ -1,4 +1,4 @@
-import { LocalDate } from '@/lib/dates';
+import { LocalDate } from "@/lib/dates";
 
 export type MonthGridDay = {
   localDate: LocalDate;
@@ -8,22 +8,11 @@ export type MonthGridDay = {
   isFuture: boolean;
 };
 
-export type WeeklyDonePoint = {
-  weekStart: LocalDate;
-  label: string;
-  doneDays: number;
-};
-
 export type CumulativeAmountPoint = {
   localDate: LocalDate;
   label: string;
   amount: number;
-};
-
-export type LevelTimelineItem = {
-  localDate: LocalDate;
-  level: number;
-  plannedAmount: number;
+  totalDoneDays: number;
 };
 
 export type HabitReport = {
@@ -33,7 +22,5 @@ export type HabitReport = {
   cumulativeAmount: number;
   monthLabel: string;
   monthGridDays: MonthGridDay[];
-  weeklyDone: WeeklyDonePoint[];
   cumulativeAmountPoints: CumulativeAmountPoint[];
-  levelTimeline: LevelTimelineItem[];
 };

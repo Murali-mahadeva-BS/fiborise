@@ -1,39 +1,43 @@
-import { router } from 'expo-router';
-import { ArrowLeft, Check } from 'lucide-react-native';
-import { useState } from 'react';
+import { Link, router } from "expo-router";
+import { ArrowLeft, Check } from "lucide-react-native";
+import { useRef, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   Switch,
   Text,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSQLiteContext } from 'expo-sqlite';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useSQLiteContext } from "expo-sqlite";
 
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { ReminderTimePicker } from '@/components/reminder-time-picker';
-import { TextField } from '@/components/ui/text-field';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ReminderTimePicker } from "@/components/reminder-time-picker";
+import { TextField } from "@/components/ui/text-field";
 import {
   HabitFormErrors,
   HabitFormValues,
-  habitIconOptions,
   parseHabitForm,
-} from '@/features/habits/habit-form';
-import { requestReminderPermission } from '@/lib/notifications/reminders';
-import { defaultReminderTime } from '@/lib/reminders';
-import { useAppStore } from '@/store/app-store';
+} from "@/features/habits/habit-form";
+import { HabitIconPicker } from "@/features/habits/icon-picker";
+import {
+  defaultHabitIconValue,
+  normalizeHabitIconValue,
+} from "@/features/habits/icons";
+import { useAndroidBackHandler } from "@/lib/navigation/use-android-back-handler";
+import { requestReminderPermission } from "@/lib/notifications/reminders";
+import { defaultReminderTime } from "@/lib/reminders";
+import { useAppStore } from "@/store/app-store";
 
 const initialValues: HabitFormValues = {
-  name: '',
-  icon: habitIconOptions[0],
-  baseAmount: '',
-  unit: '',
-  description: '',
+  name: "",
+  icon: defaultHabitIconValue,
+  baseAmount: "",
+  unit: "",
+  description: "",
   reminderEnabled: false,
   reminderTime: defaultReminderTime,
 };
@@ -41,13 +45,25 @@ const initialValues: HabitFormValues = {
 export default function NewHabitScreen() {
   const db = useSQLiteContext();
   const createHabit = useAppStore((state) => state.createHabit);
+  const scrollViewRef = useRef<ScrollView>(null);
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<HabitFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useAndroidBackHandler(() => {
+    router.navigate("/?transition=back");
+    return true;
+  });
+
   const updateField = (field: keyof HabitFormValues, value: string) => {
     setValues((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
+  };
+
+  const scrollToFormEnd = () => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 250);
   };
 
   const updateReminderEnabled = async (enabled: boolean) => {
@@ -58,7 +74,10 @@ export default function NewHabitScreen() {
 
     const granted = await requestReminderPermission();
     if (!granted) {
-      Alert.alert('Notifications disabled', 'Allow notifications to enable habit reminders.');
+      Alert.alert(
+        "Notifications disabled",
+        "Allow notifications to enable habit reminders.",
+      );
       return;
     }
 
@@ -76,11 +95,11 @@ export default function NewHabitScreen() {
     setIsSubmitting(true);
     try {
       await createHabit(db, parsed.data);
-      router.replace('/');
+      router.replace("/");
     } catch (error) {
       Alert.alert(
-        'Could not create habit',
-        error instanceof Error ? error.message : 'Please try again.',
+        "Could not create habit",
+        error instanceof Error ? error.message : "Please try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -91,17 +110,22 @@ export default function NewHabitScreen() {
     <SafeAreaView className="flex-1 bg-sage-50 dark:bg-charcoal-950">
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
+          ref={scrollViewRef}
+          automaticallyAdjustKeyboardInsets
+          keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ flexGrow: 1 }}
           contentContainerClassName="gap-6 px-5 pb-10 pt-4"
         >
           <View className="flex-row items-center gap-3">
-            <Button variant="ghost" accessibilityLabel="Go back" onPress={() => router.back()}>
-              <ArrowLeft size={22} color="#315c45" />
-            </Button>
+            <Link href="/?transition=back" asChild>
+              <Button variant="ghost" accessibilityLabel="Go back">
+                <ArrowLeft size={22} color="#315c45" />
+              </Button>
+            </Link>
             <View>
               <Text className="text-3xl font-bold text-charcoal-950 dark:text-sage-50">
                 New habit
@@ -113,32 +137,10 @@ export default function NewHabitScreen() {
           </View>
 
           <Card className="gap-5">
-            <View className="gap-3">
-              <Text className="text-sm font-semibold text-charcoal-700 dark:text-sage-100">
-                Icon
-              </Text>
-              <View className="flex-row flex-wrap gap-2">
-                {habitIconOptions.map((icon) => {
-                  const selected = values.icon === icon;
-
-                  return (
-                    <Pressable
-                      key={icon}
-                      className={`h-12 w-12 items-center justify-center rounded-2xl border ${
-                        selected
-                          ? 'border-moss-700 bg-moss-700'
-                          : 'border-sage-200 bg-sage-50 dark:border-charcoal-700 dark:bg-charcoal-800'
-                      }`}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Use ${icon} icon`}
-                      onPress={() => updateField('icon', icon)}
-                    >
-                      <Text className="text-2xl">{icon}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
+            <HabitIconPicker
+              value={normalizeHabitIconValue(values.icon)}
+              onChange={(icon) => updateField("icon", icon)}
+            />
 
             <TextField
               label="Habit name"
@@ -147,7 +149,7 @@ export default function NewHabitScreen() {
               autoCapitalize="words"
               returnKeyType="next"
               placeholder="Running"
-              onChangeText={(value) => updateField('name', value)}
+              onChangeText={(value) => updateField("name", value)}
             />
 
             <View className="flex-row gap-3">
@@ -158,7 +160,7 @@ export default function NewHabitScreen() {
                   error={errors.baseAmount}
                   keyboardType="decimal-pad"
                   placeholder="100"
-                  onChangeText={(value) => updateField('baseAmount', value)}
+                  onChangeText={(value) => updateField("baseAmount", value)}
                 />
               </View>
               <View className="flex-1">
@@ -168,7 +170,7 @@ export default function NewHabitScreen() {
                   error={errors.unit}
                   autoCapitalize="none"
                   placeholder="m"
-                  onChangeText={(value) => updateField('unit', value)}
+                  onChangeText={(value) => updateField("unit", value)}
                 />
               </View>
             </View>
@@ -181,7 +183,8 @@ export default function NewHabitScreen() {
               textAlignVertical="top"
               className="min-h-24"
               placeholder="Optional note"
-              onChangeText={(value) => updateField('description', value)}
+              onFocus={scrollToFormEnd}
+              onChangeText={(value) => updateField("description", value)}
             />
 
             <View className="gap-4 rounded-2xl bg-sage-100 p-4 dark:bg-charcoal-800">
@@ -199,8 +202,8 @@ export default function NewHabitScreen() {
                   onValueChange={(enabled) => {
                     void updateReminderEnabled(enabled);
                   }}
-                  trackColor={{ false: '#cfe3c9', true: '#3f7657' }}
-                  thumbColor={values.reminderEnabled ? '#f7fbf6' : '#ffffff'}
+                  trackColor={{ false: "#cfe3c9", true: "#3f7657" }}
+                  thumbColor={values.reminderEnabled ? "#f7fbf6" : "#ffffff"}
                 />
               </View>
 
@@ -209,7 +212,7 @@ export default function NewHabitScreen() {
                   label="Reminder time"
                   value={values.reminderTime}
                   error={errors.reminderTime}
-                  onChange={(value) => updateField('reminderTime', value)}
+                  onChange={(value) => updateField("reminderTime", value)}
                 />
               ) : null}
             </View>
@@ -217,12 +220,12 @@ export default function NewHabitScreen() {
 
           <Button
             disabled={isSubmitting}
-            className={isSubmitting ? 'opacity-60' : ''}
+            className={isSubmitting ? "opacity-60" : ""}
             onPress={handleSubmit}
           >
             <Check size={20} color="#f7fbf6" />
             <Text className="text-base font-semibold text-sage-50">
-              {isSubmitting ? 'Creating...' : 'Create habit'}
+              {isSubmitting ? "Creating..." : "Create habit"}
             </Text>
           </Button>
         </ScrollView>

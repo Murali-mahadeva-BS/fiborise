@@ -1,10 +1,8 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-import { defaultReminderTime, isValidReminderTime } from '@/lib/reminders';
+import { defaultReminderTime, isValidReminderTime } from "@/lib/reminders";
 
-import { CreateHabitInput } from './types';
-
-export const habitIconOptions = ['🏃', '🧘', '📚', '🚶', '💪', '🙏'];
+import { CreateHabitInput } from "./types";
 
 export type HabitFormValues = {
   name: string;
@@ -20,23 +18,41 @@ export type HabitFormErrors = Partial<Record<keyof HabitFormValues, string>>;
 
 const habitFormSchema = z
   .object({
-    name: z.string().trim().min(1, 'Name is required').max(80, 'Name is too long'),
-    icon: z.string().trim().min(1, 'Choose an icon'),
+    name: z
+      .string()
+      .trim()
+      .min(1, "Name is required")
+      .max(80, "Name is too long"),
+    icon: z.string().trim().min(1, "Choose an icon"),
     baseAmount: z.coerce
-      .number({ error: 'Baseline must be a number' })
-      .positive('Baseline must be greater than zero')
-      .finite('Baseline must be a number'),
-    unit: z.string().trim().min(1, 'Unit is required').max(32, 'Unit is too long'),
-    description: z.string().trim().max(240, 'Description is too long').optional(),
+      .number({ error: "Baseline must be a number" })
+      .positive("Baseline must be greater than zero")
+      .finite("Baseline must be a number"),
+    unit: z
+      .string()
+      .trim()
+      .min(1, "Unit is required")
+      .max(32, "Unit is too long"),
+    description: z
+      .string()
+      .trim()
+      .max(240, "Description is too long")
+      .optional(),
     reminderEnabled: z.boolean(),
     reminderTime: z.string().trim(),
   })
-  .refine((values) => !values.reminderEnabled || isValidReminderTime(values.reminderTime), {
-    path: ['reminderTime'],
-    message: 'Use HH:mm format',
-  });
+  .refine(
+    (values) =>
+      !values.reminderEnabled || isValidReminderTime(values.reminderTime),
+    {
+      path: ["reminderTime"],
+      message: "Use HH:mm format",
+    },
+  );
 
-export function parseHabitForm(values: HabitFormValues):
+export function parseHabitForm(
+  values: HabitFormValues,
+):
   | { ok: true; data: CreateHabitInput }
   | { ok: false; errors: HabitFormErrors } {
   const result = habitFormSchema.safeParse(values);

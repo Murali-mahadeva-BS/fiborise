@@ -1,4 +1,4 @@
-import { LocalDate } from '@/lib/dates';
+import { LocalDate } from "@/lib/dates";
 
 export type Habit = {
   id: string;
@@ -49,9 +49,17 @@ export type UpdateHabitReminderInput = {
   reminderTime: string;
 };
 
+export type UpdateHabitIdentityInput = {
+  name: string;
+  icon: string;
+  description?: string;
+};
+
+export type ThemePreference = "system" | "light" | "dark";
+
 export type AppSettings = {
-  onboardingCompletedAt?: string;
-  weekStartsOn: 'monday';
+  weekStartsOn: "monday";
+  themePreference: ThemePreference;
   createdAt: string;
   updatedAt: string;
 };

@@ -1,9 +1,9 @@
-import { type SQLiteDatabase } from 'expo-sqlite';
+import { type SQLiteDatabase } from "expo-sqlite";
 
 const migrations = [
   {
     version: 1,
-    name: 'initial_local_first_schema',
+    name: "initial_local_first_schema",
     sql: `
       CREATE TABLE IF NOT EXISTS habits (
         id TEXT PRIMARY KEY NOT NULL,
@@ -57,10 +57,18 @@ const migrations = [
   },
   {
     version: 2,
-    name: 'add_log_progress_flag',
+    name: "add_log_progress_flag",
     sql: `
       ALTER TABLE habit_logs
       ADD COLUMN counts_toward_progress INTEGER NOT NULL DEFAULT 1;
+    `,
+  },
+  {
+    version: 3,
+    name: "add_theme_preference",
+    sql: `
+      ALTER TABLE app_settings
+      ADD COLUMN theme_preference TEXT NOT NULL DEFAULT 'system';
     `,
   },
 ];
@@ -70,8 +78,8 @@ type MigrationVersionRow = {
 };
 
 export async function migrateDb(db: SQLiteDatabase): Promise<void> {
-  await db.execAsync('PRAGMA journal_mode = WAL;');
-  await db.execAsync('PRAGMA foreign_keys = ON;');
+  await db.execAsync("PRAGMA journal_mode = WAL;");
+  await db.execAsync("PRAGMA foreign_keys = ON;");
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       version INTEGER PRIMARY KEY NOT NULL,
@@ -81,7 +89,7 @@ export async function migrateDb(db: SQLiteDatabase): Promise<void> {
   `);
 
   const versionRow = await db.getFirstAsync<MigrationVersionRow>(
-    'SELECT MAX(version) AS version FROM schema_migrations',
+    "SELECT MAX(version) AS version FROM schema_migrations",
   );
   const currentVersion = versionRow?.version ?? 0;
 

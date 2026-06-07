@@ -11,7 +11,7 @@
 - Notifications: Expo Notifications.
 - Forms: React Hook Form with Zod validation.
 - State management: Zustand.
-- Charts: React Native Gifted Charts for bar and line charts, with custom calendar heatmap and Level timeline.
+- Charts: React Native Gifted Charts for cumulative line charts with milestone dots, plus a custom calendar heatmap.
 - Testing: Jest, React Native Testing Library, and focused pure unit tests for the Level engine.
 - Android validation: Expo development build or Android emulator first; iOS later.
 
@@ -22,7 +22,7 @@ Why this stack:
 - SQLite matches the local-first requirement and makes future cloud migration predictable.
 - NativeWind and custom components avoid a Material Design look while keeping styling fast to iterate.
 - Zustand gives simple global state without Redux-level boilerplate.
-- Gifted Charts covers the MVP report bar and line charts without the heavier setup of Skia-based charting.
+- Gifted Charts covers the MVP cumulative line chart interactions without the heavier setup of Skia-based charting.
 - Keeping Level logic in pure TypeScript makes Codex and tests much more reliable.
 
 ## Suggested Project Structure
@@ -32,16 +32,16 @@ src/
   app/
     _layout.tsx
     index.tsx
-    onboarding.tsx
     settings.tsx
     habits/
       new.tsx
       [id].tsx
+      edit/
+        [id].tsx
   components/
     ui/
   features/
     habits/
-    onboarding/
     reports/
     settings/
   lib/
@@ -94,6 +94,7 @@ type HabitLog = {
   levelSequencePosition: number;
   level: number;
   plannedAmount: number;
+  countsTowardProgress?: boolean; // false for stay-mode done logs
   note?: string;
   createdAt: string;
   updatedAt: string;
@@ -104,8 +105,8 @@ type HabitLog = {
 
 ```ts
 type AppSettings = {
-  onboardingCompletedAt?: string;
   weekStartsOn: "monday";
+  themePreference: "system" | "light" | "dark";
   createdAt: string;
   updatedAt: string;
 };
@@ -175,13 +176,6 @@ MVP requirements that make this possible:
 
 ## Screens
 
-### Onboarding
-
-- Short explanation of Levels.
-- Short explanation that the app is local-first.
-- Continue to create first habit.
-- Skip option.
-
 ### Home
 
 - Active habits list in creation order.
@@ -199,7 +193,7 @@ MVP requirements that make this possible:
 - Reports shortcut.
 - Archive action.
 
-### Create/Edit Habit
+### Create Habit
 
 - Name.
 - Icon.
@@ -215,14 +209,13 @@ MVP requirements that make this possible:
 - Level progress.
 - Streaks.
 - Calendar heatmap or monthly completion grid.
-- Weekly done bar chart.
-- Cumulative amount line chart.
-- Level timeline.
+- Cumulative amount line chart with tappable Level milestone dots.
 
 ### Settings
 
-- Theme follows system by default.
+- Theme supports system, light, and dark selection.
 - Archived habits.
+- Restore archived habit.
 - Delete archived habit after confirmation.
 - About/local storage info.
 
@@ -244,8 +237,8 @@ MVP requirements that make this possible:
 
 ### Milestone 3: Habit Tracking UI
 
-- Add theme, navigation, and onboarding.
-- Add create/edit habit flow.
+- Add theme and navigation.
+- Add create habit flow.
 - Add today's done/not done interactions.
 - Add habit detail screen.
 - Add archive flow.
